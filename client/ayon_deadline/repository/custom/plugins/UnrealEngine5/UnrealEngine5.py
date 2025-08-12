@@ -108,6 +108,24 @@ class UnrealEnginePlugin(DeadlinePlugin):
             self.AddStdoutHandlerCallback(
                 ".*"
             ).HandleCallback += self._handle_stdout
+            # BCC MEDIA CUSTOM START
+            self.AddStdoutHandlerCallback(
+                ".*LogPython: MRQ job started.*"
+            ).HandleCallback += lambda: self._set_progress(30)
+
+            self.AddStdoutHandlerCallback(
+                ".*Finished rendering last shot.*"
+            ).HandleCallback += lambda: self._set_progress(80)
+
+            self.AddStdoutHandlerCallback(
+                ".*LogLevelSequence: Starting new camera cut.*"
+            ).HandleCallback += lambda: self._set_progress(50)
+
+            # Error when not rendring file not writing file
+            self.AddStdoutHandlerCallback(
+                ".*LogAppleProResMedia: Error: Failed to.*"
+            ).HandleCallback += self._handle_stdout_error
+            # BCC MEDIA CUSTOM END
 
         self.LogInfo("Initialization complete!")
 
@@ -280,6 +298,20 @@ class UnrealEnginePlugin(DeadlinePlugin):
         progress = float(self.GetRegexMatch(1))
         self.SetProgress(progress)
 
+    def _set_progress(self, progress):
+        """
+        Set the progress of the render
+        :param progress:
+        :return:
+        """
+        self.SetProgress(progress)
+
+    def _handle_stdout_error(self):
+        """
+        Callback for when a line of stdout contains an ERROR message.
+        """
+        self.FailRender(self.GetRegexMatch(0))
+
     def _get_startup_directory(self):
         """
         Get startup directory
@@ -370,9 +402,9 @@ class UnrealEngineManagedProcess(ManagedProcess):
 
         # Set the stdout handlers.
 
-        self.AddStdoutHandlerCallback(
-            "LogPython: Error:.*"
-        ).HandleCallback += self._handle_stdout_error
+        # self.AddStdoutHandlerCallback(
+        #     "LogPython: Error:.*"
+        # ).HandleCallback += self._handle_stdout_error
         self.AddStdoutHandlerCallback(
             "Warning:.*"
         ).HandleCallback += self._handle_stdout_warning
@@ -380,18 +412,15 @@ class UnrealEngineManagedProcess(ManagedProcess):
         logs_dir = self._deadline_plugin.GetPluginInfoEntryWithDefault(
             "LoggingDirectory", ""
         )
+
+        # BCC MEDIA CUSTOM START
         # error handler for Apple ProRes Media not writing file
         self.AddStdoutHandlerCallback(
             ".*LogAppleProResMedia: Error: Failed to.*"
         ).HandleCallback += self._handle_stdout_error
+        self._deadline_plugin.SetProgress(1)
 
-        self.AddStdoutHandlerCallback(
-            ".*LogWindows: FPlatformMisc::RequestExitWithStatus\(1,.*"
-        ).HandleCallback += self._handle_stdout_error
-
-        self.AddStdoutHandlerCallback(
-            ".*with error DXGI_ERROR_DEVICE_REMOVED with Reason: DXGI_ERROR_DEVICE_HUNG*"
-        ).HandleCallback += self._handle_stdout_error
+        # BCC MEDIA CUSTOM END
 
         if logs_dir:
 
@@ -654,6 +683,14 @@ class UnrealEngineCmdManagedProcess(ManagedProcess):
         self.AddStdoutHandlerCallback(
             ".*Progress: (\d+)%.*"
         ).HandleCallback += self._handle_progress
+
+        # BCC MEDIA CUSTOM START
+
+        # Error when not rendring file not writing file
+        self.AddStdoutHandlerCallback(
+            ".*LogAppleProResMedia: Error: Failed to.*"
+        ).HandleCallback += self._handle_stdout_error
+        # BCC MEDIA CUSTOM END
 
         # self.AddStdoutHandlerCallback("LogPython: Error:.*").HandleCallback += self._handle_stdout_error
 
