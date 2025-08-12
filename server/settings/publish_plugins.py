@@ -40,6 +40,7 @@ def extract_jobinfo_overrides_enum():
         {"value": "secondary_pool", "label": "Secondary pool"},
         {"value": "machine_list", "label": "Machine List"},
         {"value": "machine_list_deny", "label": "Machine List is a Deny"},
+        {"value": "concurrent_tasks", "label": "Number of Concurrent Tasks"},
         {"value": "publish_job_state", "label": "Publish Job State"},
     ]
 
@@ -104,7 +105,10 @@ class CollectJobInfoItem(BaseSettingsModel):
         )
     )
     concurrent_tasks: int = SettingsField(
-        1, title="Number of concurrent tasks")
+        1,
+        title="Number of concurrent tasks",
+        description="Concurrent tasks on single render node"
+    )
     department: str = SettingsField("", title="Department")
     job_delay: str = SettingsField(
         "", title="Delay job",
@@ -122,7 +126,6 @@ class CollectJobInfoItem(BaseSettingsModel):
         True, title="Use Asset dependencies")
     use_workfile_dependency: bool = SettingsField(
         True, title="Workfile Dependency")
-    multiprocess: bool = SettingsField(False, title="Multiprocess")
 
     additional_job_info: str = SettingsField(
         "",
@@ -336,6 +339,13 @@ class ProcessSubmittedJobOnFarmModel(BaseSettingsModel):
         title="Reviewable products filter",
     )
 
+    add_rendered_dependencies: bool = SettingsField(
+        False,
+        title="Add rendered files as Dependencies",
+        description="Add all expected rendered files as job Dependencies."
+                    "Publish job won't trigger until all files are present."
+    )
+
     @validator("aov_filter")
     def validate_unique_names(cls, value):
         ensure_unique_names(value)
@@ -416,7 +426,6 @@ DEFAULT_DEADLINE_PLUGINS_SETTINGS = {
           "task_types": [],
           "limit_groups": [],
           "machine_list": [],
-          "multiprocess": False,
           "primary_pool": "",
           "machine_limit": 0,
           "use_published": True,
@@ -453,7 +462,6 @@ DEFAULT_DEADLINE_PLUGINS_SETTINGS = {
           "task_types": [],
           "limit_groups": [],
           "machine_list": [],
-          "multiprocess": False,
           "primary_pool": "",
           "machine_limit": 0,
           "use_published": True,
@@ -557,6 +565,7 @@ DEFAULT_DEADLINE_PLUGINS_SETTINGS = {
                     ".*"
                 ]
             }
-        ]
+        ],
+        "add_rendered_dependencies": False
     }
 }
